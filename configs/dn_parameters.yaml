@@ -1,0 +1,70 @@
+# Main distribution-network parameters used in the DN-MG dispatch experiments.
+
+system:
+  name: "Modified IEEE 33-bus distribution network"
+  base_voltage_kv: 12.66
+  base_power_mva: 10.0
+  buses: 33
+  branches: 32
+  root_bus: 0
+  pcc_bus: 32
+  topology: "radial IEEE 33-bus feeder"
+
+time:
+  dispatch_periods: 24
+  dispatch_timestep_h: 1.0
+
+voltage_limits:
+  v_min_pu: 0.95
+  v_max_pu: 1.05
+  v_min_squared_pu: 0.9025
+  v_max_squared_pu: 1.1025
+
+loads:
+  total_nominal_active_load_mw: 3.715
+  total_nominal_reactive_load_mvar: 2.6
+  daily_load_scale_range: [0.90, 1.10]
+  load_shape_24h_pu:
+    "00:00-06:00": 0.55
+    "06:00-09:00": 0.80
+    "09:00-12:00": 0.85
+    "12:00-14:00": 0.90
+    "14:00-17:00": 0.80
+    "17:00-20:00": 1.00
+    "20:00-22:00": 0.80
+    "22:00-24:00": 0.60
+
+dn_resources:
+  oltc:
+    max_tap_steps: 5
+    voltage_squared_step_pu: 0.01
+  svg:
+    buses: [17, 30]
+    q_max_mvar: [0.6, 0.8]
+  pv:
+    buses: [18, 25, 30]
+    p_max_mw: [0.12, 0.15, 0.10]
+    profile: "bell-shaped daytime PV profile with random scale in [0.90, 1.08]"
+  ess:
+    bus: 30
+    p_ch_max_mw: 0.15
+    p_dis_max_mw: 0.15
+    e_max_mwh: 0.40
+    e_init_fraction: 0.50
+    eta_ch: 0.95
+    eta_dis: 0.95
+    cycle_cost_usd_per_mwh: 5.0
+
+
+data_generation:
+  samples_per_mode:
+    mode_0: 800
+    mode_1: 800
+    mode_2: 800
+    mode_3: 800
+    mode_4: 800
+  random_seed: 42
+  price_noise_std_usd_per_mwh: 15.0
+  dn_load_noise_std: 0.10
+  pv_noise_std: 0.15
+
