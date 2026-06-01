@@ -1,0 +1,27 @@
+# Neural-network training parameters for the CL surrogate.
+
+conditional_cl:
+  network:
+    type: MLP
+    hidden_layers: [64, 32]
+    activation: ReLU
+    output_layer: linear
+  training:
+    batch_size: 64
+    epochs: 600
+    learning_rate: 1.0e-3
+    seed: 42
+    validation_split: 0.20
+
+unconditional_cl:
+  network:
+    type: MLP
+    hidden_layers: [64, 32]
+    activation: ReLU
+    output_layer: linear
+  training:
+    batch_size: 64
+    epochs: 400
+    learning_rate: 1.0e-3
+    seed: 42
+    validation_split: 0.20
