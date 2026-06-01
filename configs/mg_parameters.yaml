@@ -1,0 +1,84 @@
+# Main microgrid parameters used for offline MG optimization and CL training.
+
+system:
+  name: "6-bus radial microgrid"
+  base_voltage_kv: 0.4
+  base_power_mva: 1.0
+  buses: 6
+  root_bus: 0
+  pcc_bus: 0
+  topology: "radial chain: 0-1-2-3-4-5"
+
+
+time:
+  dispatch_periods: 24
+  dispatch_timestep_h: 1.0
+
+voltage_limits:
+  v_min_pu: 0.95
+  v_max_pu: 1.05
+  v_min_squared_pu: 0.9025
+  v_max_squared_pu: 1.1025
+
+base_loads:
+  active_load_nominal_mw_by_bus: [0.0, 0.10, 0.15, 0.08, 0.06, 0.12]
+  reactive_load_nominal_mvar_by_bus: [0.0, 0.04, 0.06, 0.03, 0.02, 0.05]
+  total_nominal_active_load_mw: 0.51
+  total_nominal_reactive_load_mvar: 0.20
+  load_noise_std: 0.12
+
+diesel_generator:
+  bus: 1
+  active_modes: [1, 2]
+  standby_modes: [0, 3, 4]
+  p_min_mw: 0.03
+  p_min_islanded_mw: 0.08
+  p_max_mw: 0.25
+  q_max_mvar: 0.15
+  ramp_mw_per_period: 0.08
+  fuel_cost_usd_per_mwh: 120.0
+  note: "DG is forced off in grid-connected modes and enabled only in islanded modes."
+
+pv:
+  bus: 3
+  p_max_peak_mw: 0.20
+  profile: "scenario-dependent available PV profile"
+  pv_noise_std: 0.15
+
+ess:
+  bus: 2
+  p_ch_max_mw: 0.12
+  p_dis_max_mw: 0.12
+  e_min_mwh: 0.05
+  e_max_mwh: 0.50
+  e_init_mwh: 0.25
+  e_terminal_mwh: 0.25
+  eta_ch: 0.95
+  eta_dis: 0.95
+  degradation_cost_usd_per_mwh: 5.0
+  charge_discharge_exclusion: true
+
+
+pcc:
+  p_buy_max_mw: 0.50
+  p_sell_max_mw: 0.50
+  mutual_exclusion: true
+  islanded_modes:
+    p_buy_max_mw: 0.0
+    p_sell_max_mw: 0.0
+  mode_specific_limits:
+    mode_0_normal:
+      p_buy_cap_fraction_of_pcc: 1.0
+      p_sell_cap_fraction_of_pcc: 1.0
+    mode_1_planned_islanding:
+      p_buy_cap_fraction_of_pcc: 0.0
+      p_sell_cap_fraction_of_pcc: 0.0
+    mode_2_fault_induced_islanding:
+      p_buy_cap_fraction_of_pcc: 0.0
+      p_sell_cap_fraction_of_pcc: 0.0
+    mode_3_mg_supports_dn:
+      p_buy_cap_fraction_of_pcc: 0.06
+      p_sell_cap_fraction_of_pcc: 1.0
+    mode_4_dn_partial_restoration:
+      p_buy_cap_fraction_of_pcc: 0.30
+      p_sell_cap_fraction_of_pcc: 1.0
