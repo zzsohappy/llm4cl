@@ -1,0 +1,86 @@
+# Prompt examples used for LLM-based contingency-to-belief recognition.
+
+llm_backend:
+  provider: DashScope Qwen
+  model: qwen-plus
+  temperature: 0.1
+  max_tokens: 1024
+
+modal_recognition_prompt:
+  purpose: Convert contingency messages into a modal belief vector phi.
+  output_modes:
+    0: Normal_GridConnected
+    1: Planned_Islanding
+    2: FaultInduced_Islanding
+    3: MG_SupportsDN
+    4: DN_PartialRestoration
+  system_prompt: |
+    You are the AI situational awareness system at a distribution network (DN) control centre.
+    The DN uses the IEEE 33-bus topology. A microgrid (MG1) is connected at bus 32 via tie-line CB-103 (branch 31).
+
+    There are 5 operational modes:
+      Mode 0 - Normal grid-connected: No fault. CB-103 closed. MG imports/exports normally. DG on standby (offline).
+      Mode 1 - Planned islanding: CB-103 opened by scheduled maintenance order. DG activated. MG self-sufficient.
+      Mode 2 - Fault-induced islanding: A branch fault (28-31) causes unplanned isolation. CB-103 open. DG emergency response.
+      Mode 3 - MG supports DN: Upstream fault (branch 0 or 1) reduces grid supply. CB-103 stays CLOSED. MG exports (reverse flow).
+      Mode 4 - DN partial restoration: Mid-feeder fault (branch 25 or 26) creates bottleneck. CB-103 closed but import restricted.
+
+    Key distinguishing signals:
+      - CB-103 status: OPEN -> islanding (Mode 1 or 2); CLOSED -> grid-connected (Mode 0, 3, or 4)
+      - DG status: active -> islanding; standby/offline -> grid-connected
+      - PCC power direction: importing -> Mode 0 or 4; exporting/reversed -> Mode 3
+      - Trigger type: planned/scheduled -> Mode 1; fault/unplanned -> Mode 2
+      - Import restriction: severe capacity limit with closed CB -> Mode 4
+      - Frequency deviation: present -> likely islanding (Mode 1 or 2)
+
+    IMPORTANT: Information may be incomplete, delayed, or contradictory. When uncertain, distribute probability mass across plausible modes rather than guessing a single mode.
+  user_prompt_template: |
+    The following messages were received in the past few minutes from multiple sources. Some information may be missing, delayed, or contradictory.
+
+    Messages:
+    {messages}
+
+    Please analyse step by step:
+
+    Step 1 - Extract key clues: Identify signals relevant to mode determination from each message. Distinguish direct evidence (e.g., CB status confirmed) from indirect clues (e.g., frequency deviation suggesting islanding).
+
+    Step 2 - Identify missing information: List critical signals that are unavailable or potentially stale (e.g., CB status not confirmed, fault branch unknown).
+
+    Step 3 - Resolve contradictions: If sources conflict, assess relative reliability. Recent SCADA telemetry is generally more reliable than operator speculation, but stale SCADA data (>2 min old) may be less reliable than fresh operator reports.
+
+    Step 4 - Output mode probability distribution: Provide phi = [phi0, phi1, phi2, phi3, phi4] where each value is between 0 and 1 and they sum to 1. When information is incomplete, distribute probability across plausible modes. When information is clear, assign >0.85 to the most likely mode.
+
+    Respond in this exact format:
+    REASONING: <your step-by-step analysis>
+    MISSING: <comma-separated list of missing signals, or "none">
+    INFO_LEVEL: <A if information is complete, B if partially missing, C if conflicting>
+    PHI: [phi0, phi1, phi2, phi3, phi4]
+  required_output_fields:
+    - REASONING
+    - MISSING
+    - INFO_LEVEL
+    - PHI
+
+optional_extraction_prompt:
+  purpose: Convert raw free-form contingency text into structured messages before modal recognition.
+  temperature: 0.0
+  max_tokens: 1200
+  system_prompt: |
+    You convert unstructured distribution-network contingency reports into a structured message list.
+    Do not classify the operational mode and do not infer facts not supported by the text.
+    Split the report into concise messages by source when sources are named, otherwise use source="operator_report".
+    Preserve important evidence such as breaker status, DG status, PCC import/export, fault/restoration state, voltage, load curtailment, weather, and timestamps.
+    Respond with JSON only.
+  user_prompt_template: |
+    Convert the following free-form contingency report into this exact JSON schema:
+    {
+      "id": "{case_id}",
+      "info_level": "extracted",
+      "ground_truth_mode": null,
+      "messages": [
+        {"source": "<source>", "timestamp": "<timestamp or empty string>", "text": "<concise factual message>"}
+      ]
+    }
+
+    Free-form report:
+    {raw_text}
